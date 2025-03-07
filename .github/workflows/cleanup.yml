@@ -1,0 +1,28 @@
+name: GCP Project Cleanup
+
+on:
+  delete:
+    branches:
+      - '**'
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set up Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Confirm Deletion
+      run: |
+        echo "Are you sure you want to delete the project? (yes/no)"
+        read confirmation
+        if [ "$confirmation" != "yes" ]; then
+          echo "Deletion cancelled"
+          exit 1
+        fi
+
+    - name: Delete GCP project
+      run: gcloud projects delete ${{ secrets.GCP_PROJECT_ID }} --quiet 
