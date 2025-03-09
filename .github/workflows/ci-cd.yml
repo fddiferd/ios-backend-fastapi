@@ -1,0 +1,64 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - staging
+      - main
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          
+      - name: Deploy to Cloud Run
+        env:
+          ENVIRONMENT: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+        run: |
+          gcloud run deploy wedge-${{ env.ENVIRONMENT }}-api \
+            --image=gcr.io/your-project-id/wedge-api \
+            --region=us-central1 \
+            --allow-unauthenticated
+
+  ios:
+    needs: backend
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+          
+      - name: Build and Archive
+        env:
+          API_URL: ${{ github.ref_name == 'main' && 'https://wedge-prod-api-xyz.a.run.app' || 'https://wedge-staging-api-xyz.a.run.app' }}
+        run: |
+          xcodebuild archive \
+            -scheme ${{ github.ref_name == 'main' && 'WedgeIosApp-Prod' || 'WedgeIosApp-Staging' }} \
+            -configuration ${{ github.ref_name == 'main' && 'Release' || 'Staging' }} \
+            -archivePath ./build/WedgeIosApp.xcarchive \
+            -destination generic/platform=iOS \
+            CODE_SIGN_STYLE=Manual \
+            PROVISIONING_PROFILE_SPECIFIER=Your_App_Store_Profile \
+            API_BASE_URL=${{ env.API_URL }}
+            
+      - name: Upload to TestFlight/App Store
+        if: github.ref_name == 'staging' || github.ref_name == 'main'
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath ./build/WedgeIosApp.xcarchive \
+            -exportOptionsPlist ./exportOptions.plist \
+            -exportPath ./build 
