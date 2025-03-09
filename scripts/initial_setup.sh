@@ -42,6 +42,17 @@ if [[ "$BILLING_STATUS" != "True" ]]; then
     handle_error "Billing is still not enabled after attempt. Please check your billing account."
 fi
 
+# Set up budget
+echo "Setting up budget..."
+gcloud billing budgets create \
+    --billing-account=$GCP_BILLING_ACCOUNT \
+    --display-name="Project Budget" \
+    --budget-amount=25 \
+    --threshold-rule=percent=0.5 \
+    --threshold-rule=percent=0.75 \
+    --threshold-rule=percent=0.9 \
+    --filter-projects=$GCP_PROJECT_ID || handle_error "Failed to create budget"
+
 # Enable IAM service first as it's required for other services
 if ! gcloud services list --enabled --project=$GCP_PROJECT_ID | grep -q "iam.googleapis.com"; then
     echo "Enabling IAM service..."
@@ -122,7 +133,8 @@ if ! firebase projects:list | grep -q $GCP_PROJECT_ID; then
     firebase projects:addfirebase $GCP_PROJECT_ID || handle_error "Failed to add Firebase to project"
     
     echo "Configuring Firebase iOS app..."
-    firebase apps:create ios --bundle-id=com.wedgegolf.app --project=$GCP_PROJECT_ID || handle_error "Failed to create Firebase iOS app"
+    # Create iOS app without requiring immediate configuration
+    firebase apps:create ios --bundle-id=com.wedgegolf.app --project=$GCP_PROJECT_ID || echo "Warning: Failed to create Firebase iOS app. You can configure this later in the Firebase console."
 else
     echo "Firebase already initialized"
 fi

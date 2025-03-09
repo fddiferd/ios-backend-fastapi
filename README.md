@@ -1,10 +1,4 @@
 ## Initial Project Setup
-**BUILD THE PROJECT**
-```
-chmod +x scripts/initial_setup.sh
-./scripts/initial_setup.sh
-./scripts/initial_setup.sh
-```
 
 ## Configure Locally
 **AUTHENTICATE GCP**
@@ -17,6 +11,13 @@ gcloud auth application-default login
 GCP_PROJECT_ID=""
 REGION=""
 GCP_BILLING_ACCOUNT=""
+```
+
+**BUILD THE PROJECT**
+```
+chmod +x scripts/initial_setup.sh
+./scripts/initial_setup.sh
+./scripts/initial_setup.sh
 ```
 
 
